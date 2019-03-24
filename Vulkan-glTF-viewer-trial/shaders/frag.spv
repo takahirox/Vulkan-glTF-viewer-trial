@@ -8,6 +8,9 @@ layout(binding = 2) uniform sampler2D emissiveSampler;
 layout(binding = 3) uniform sampler2D normalSampler;
 layout(binding = 4) uniform sampler2D metallicRoughnessSampler;
 layout(binding = 5) uniform sampler2D occlusionSampler;
+layout(binding = 6) uniform sampler2D brdfLUT;
+layout(binding = 7) uniform samplerCube diffuseEnvSampler;
+layout(binding = 8) uniform samplerCube specularEnvSampler;
 
 layout(location = 0) in vec3 fragPosition;
 layout(location = 1) in vec3 fragNormal;
@@ -84,6 +87,19 @@ vec3 diffuse(PBRInfo pbrInputs) {
 	return pbrInputs.diffuseColor / M_PI;
 }
 
+vec3 getIBLContribution(PBRInfo pbrInputs, vec3 n, vec3 reflection) {
+	float mipCount = 9.0;
+	vec3 brdf = SRGBtoLINEAR(texture(brdfLUT, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.roughness))).rgb;
+
+	vec3 diffuseLight = SRGBtoLINEAR(texture(diffuseEnvSampler, n)).rgb;
+	vec3 diffuse = diffuseLight * pbrInputs.diffuseColor;
+
+	vec3 specularLight = SRGBtoLINEAR(texture(specularEnvSampler, reflection)).rgb;
+	vec3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
+
+	return diffuse + specular;
+}
+
 void main() {
 	float metallicFactor = 1.0;
 	float roughnessFactor = 1.0;
@@ -143,8 +159,10 @@ void main() {
 	vec3 diffuseContrib = (1.0 - F) * diffuse(pbrInputs);
 	vec3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
-	vec3 lightColor = vec3(5.0);
+	vec3 lightColor = vec3(1.0);
 	vec3 color = NdotL * lightColor * (diffuseContrib + specContrib);
+
+	color += getIBLContribution(pbrInputs, n, reflection);
 
 	float ao = texture(occlusionSampler, fragTexCoord).r;
 	float occlusionStrength = 1.0;

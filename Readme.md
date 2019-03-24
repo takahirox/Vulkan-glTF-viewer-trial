@@ -2,6 +2,10 @@
 
 Currently the source code is based on [Vulkan Tutorial](https://vulkan-tutorial.com/).
 
+## Screenshot
+
+![Screenshot](https://github.com/takahirox/Vulkan-glTF-viewer-trial/blob/master/screenshot.png)
+
 ## Dependencies
 
 * [tynyglft](https://github.com/syoyo/tinygltf)
